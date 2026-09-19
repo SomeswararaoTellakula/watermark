@@ -71,14 +71,3 @@ The 10 research extensions are:
 
 For a detailed comparison of the paper claims vs actual code, see `PAPER_VS_CODE_ANALYSIS.md`.
 
-## Attribution
-
-Original DiffMark work by Sun et al. (2025):
-```bibtex
-@article{SUN2025103801,
-  title = {DiffMark: Diffusion-based Robust Watermark Against Deepfakes},
-  author = {Chen Sun and Haiyang Sun and Zhiqing Guo and Yunfeng Diao and Liejun Wang and Dan Ma and Gaobo Yang and Keqin Li},
-  journal = {Information Fusion},
-  year = {2025},
-}
-```
