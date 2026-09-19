@@ -67,7 +67,3 @@ The 10 research extensions are:
 9. Benchmark Suite
 10. Removal Defense
 
-## Paper vs Code
-
-For a detailed comparison of the paper claims vs actual code, see `PAPER_VS_CODE_ANALYSIS.md`.
-
