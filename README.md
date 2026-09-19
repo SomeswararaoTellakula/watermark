@@ -59,6 +59,15 @@ After deploying, verify the backend at `/api/health` before testing login or
 watermark operations. If a build selects Python 3.14, set `PYTHON_VERSION` to
 `3.11.9` and redeploy.
 
+If Render reports `Could not open requirements file` while running
+`pip install -r requirements.txt`, the service is using the repository root as
+its working directory. Open the backend service settings and set **Root
+Directory** to `DiffMark-main/webapp`, then set the build command to
+`python -m pip install --upgrade pip && python -m pip install -r requirements.txt`.
+Also add `PYTHON_VERSION=3.11.9` under Environment, save the changes, and use
+**Manual Deploy > Deploy latest commit**. The root directory must be set before
+the build command can find `requirements.txt`.
+
 ### Research Extensions
 
 To test all 10 research extensions:
