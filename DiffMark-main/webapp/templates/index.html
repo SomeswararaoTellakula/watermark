@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Pentamark Web UI</title>
+  </head>
+  <body>
+    <h1>Pentamark - Web UI</h1>
+    <p>
+      <button id="run">Run quick training test</button>
+    </p>
+    <p>
+      <a href="/results">Browse results</a>
+    </p>
+    <pre id="out"></pre>
+    <script>
+      document.getElementById('run').addEventListener('click', async () => {
+        const res = await fetch('/run-quick-train', { method: 'POST' });
+        const data = await res.json();
+        document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+      });
+    </script>
+  </body>
+  </html>

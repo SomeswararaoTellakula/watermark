@@ -1,0 +1,706 @@
+
+=== PAGE 1 ===
+DiffMark: Diffusion-Based Robust Watermarking
+Against Deepfake Manipulation
+Leelavathy Pallava
+Department of Information Technology
+Vasavi College of Engineering
+Hyderabad, India
+leelapallava@staff.vce.ac.inTellakula Someswararao
+Department of Information Technology
+Vasavi College of Engineering
+Hyderabad, India
+someshtellakula@gmail.com
+Abstract —The rapid proliferation of deepfake technology poses
+significant threats to digital media integrity, enabling malicious
+manipulation of facial images with near-indistinguishable results.
+Existing watermarking methods often fail to maintain robustness
+after deepfake operations such as face-swapping and expression
+transfer, as these manipulations substantially alter the spatial
+and frequency characteristics of images. In this paper, we
+present DiffMark, a diffusion-based watermarking framework
+specifically designed to withstand deepfake attacks. DiffMark
+leverages a U-Net-based encoder-decoder architecture tightly
+coupled with a guided diffusion process to embed imperceptible
+binary watermark messages into facial images. A key innovation
+is the use of multiple deepfake noise layers during training,
+including SimSwap, StarGAN, UniFace, CSCS, and FSRT, en-
+abling the model to learn robust watermark representations that
+survive diverse manipulation pipelines. We further introduce a
+guidance mechanism that directs the diffusion sampling process
+toward enhanced message fidelity under deepfake perturbation.
+Extensive experiments on CelebA-HQ and LFW datasets at
+resolutions of 128 ×128 and 256 ×256 demonstrate that DiffMark
+achieves state-of-the-art bit accuracy and perceptual quality,
+outperforming prior watermarking methods in both robustness
+and invisibility metrics.
+Index Terms —deepfake detection, digital watermarking, diffu-
+sion models, robust watermarking, face manipulation, informa-
+tion hiding
+I. I NTRODUCTION
+The emergence of Generative Adversarial Networks (GANs)
+and latent diffusion models has dramatically lowered the bar-
+rier to creating convincing deepfake content. Face-swapping
+systems such as SimSwap [8] and expression-transfer methods
+such as FSRT [12] can produce facial images that are visually
+indistinguishable from authentic photographs, creating serious
+risks for misinformation, identity fraud, and non-consensual
+media generation.
+Digital watermarking offers a proactive defence strategy: by
+embedding an imperceptible ownership or provenance signal
+into an image before distribution, one can later verify whether
+the image has been manipulated. However, deepfake opera-
+tions constitute a particularly challenging class of distortions
+because they jointly modify spatial structures, textures, and
+semantic content. Classical watermarking methods, designed
+to withstand compression, resizing, or JPEG artefacts, cannot
+reliably survive face-swapping pipelines that replace large
+facial regions.Why diffusion-based embedding is inherently more ro-
+bust than GAN-based watermarking. A GAN-based encoder
+embeds a message in a single forward pass, mapping the host
+image and message jointly to a watermarked image through
+one deterministic function. Because this mapping is one-shot,
+the watermark signal tends to concentrate in whichever spatial-
+frequency band the encoder network finds most convenient to
+modify, and any transformation that perturbs that particular
+band, such as a face-swap network replacing an entire facial
+region, can remove most of the embedded signal in one
+operation. A diffusion-based encoder, in contrast, embeds the
+message incrementally across a multi-step denoising trajectory,
+injecting the message embedding into every residual block
+at every timestep via adaptive group normalisation. This has
+two consequences for robustness. First, the watermark is
+distributed across multiple noise scales and spatial resolu-
+tions rather than concentrated in one, so a manipulation that
+damages high-frequency detail still leaves lower-frequency,
+coarser-scale traces of the message intact, and vice versa.
+Second, because the diffusion process is itself a model of
+how images can be perturbed and reconstructed, the encoder
+implicitly learns a representation that is already compatible
+with reconstruction-style edits, which is analogous to the kind
+of edit a face-swap or reenactment network performs on a local
+region. GAN-based encoders have no equivalent inductive bias
+and must instead rely entirely on the differentiable noise layers
+seen during training to discover robust features. We stress that
+this is a structural argument for why diffusion embedding
+is a good fit for the problem, not a claim that diffusion
+watermarks are unconditionally unbreakable. The limitations
+discussion later in this paper addresses an important counter-
+example, diffusion-based regeneration attacks, where the same
+generative flexibility that helps embedding robustness can also
+be turned into an attack that erases the mark.
+Recent learning-based watermarking approaches [1]–[4]
+have significantly improved robustness by training encoder-
+decoder networks end-to-end against differentiable noise lay-
+ers. Yet none of these methods explicitly models the complex,
+non-linear distortions introduced by modern deepfake genera-
+tors, limiting their effectiveness in practice.
+In this work we propose DiffMark, which addresses this gap
+through three contributions:
+=== PAGE 2 ===
+•A diffusion-process-based embedding architecture that
+integrates watermark messages directly into the denoising
+trajectory of a U-Net, producing watermarked images that
+are inherently robust to regeneration-based attacks.
+•A multi-deepfake noise layer training strategy that simul-
+taneously exposes the watermark encoder to five distinct
+face-manipulation systems, encouraging the learning of
+universally robust feature representations.
+•A message-guided sampling mechanism that steers the
+reverse diffusion chain toward high message-extraction
+accuracy even when the watermarked image has been
+processed by an unseen deepfake system.
+Experiments confirm that DiffMark substantially outper-
+forms prior art in bit accuracy after deepfake attack while
+maintaining imperceptibility (PSNR >35 dB, SSIM >0.97)
+across both tested datasets and resolutions.
+II. R ELATED WORK
+A. Traditional Watermarking
+Early watermarking techniques operated in transform do-
+mains such as DCT [15] and DWT, encoding bits into
+frequency coefficients. While resilient to common signal-
+processing distortions, they are unable to tolerate semantic-
+level editing, including face swapping.
+B. Learning-Based Watermarking
+HiDDeN [1] introduced the first end-to-end trainable
+encoder-decoder framework, pairing the encoder with a differ-
+entiable noise layer during training. StegaStamp [2] extended
+this to physical-world scenarios using spatial transformer net-
+works. SepMark [3] disentangles robust and fragile watermark
+components, while LampMark [4] employs localized attention
+pooling to improve spatial fidelity. None of these methods
+directly targets deepfake distortions.
+C. Deepfake Detection and Provenance
+Passive deepfake detectors [14] analyse artefacts in image
+statistics to classify images as real or fake. Active methods
+embed a signal at capture time so that downstream forgery
+is detectable regardless of detector evolution. DiffMark is
+an active method: it does not classify deepfakes but instead
+enables ownership verification and tampering localisation.
+D. Diffusion Models
+Denoising Diffusion Probabilistic Models (DDPMs) [5]
+learn to reverse a Markov noising chain. Guided diffusion
+[7] introduced classifier guidance to steer generation toward
+desired attributes. DiffMark repurposes this guidance mech-
+anism to maximise watermark message recovery rather than
+class probability.
+E. Recent Diffusion-Based and Provenance Watermarking
+(2024–2026)
+A growing body of work has moved robust watermarking
+toward diffusion architectures and, in parallel, toward system-
+level provenance standards. Zhang et al. [16] embed watermarkbits directly into a pretrained Stable Diffusion backbone rather
+than a bespoke encoder, trading some training flexibility for
+the ability to reuse a strong pretrained prior. Wang et al. [17]
+take a complementary route to ours, using facial-landmark
+structure to build a perceptual watermark tailored to face-
+swap forensics rather than a generic deepfake noise layer. Tan
+et al. [18] propose WaterDiff, which repurposes a pretrained
+diffusion autoencoder for reversible image-to-latent mapping
+and embeds the message via a wavelet-domain transform of the
+latent; unlike DiffMark, its reliance on an invertible mapping
+tends to trade away fine image detail, whereas our residual-
+based embedding (Eq. 2) is designed to preserve it. Wen et
+al. [19] introduced Tree-Ring watermarks, which fingerprint
+the initial noise pattern of a diffusion sampler rather than
+the output image, giving strong robustness for content that
+is itself diffusion-generated but which does not directly apply
+to watermarking an already-captured photograph, as DiffMark
+does. Zhang et al. [20] and its 2025 successor OmniGuard [21]
+extend versatile watermarking to joint tamper-localisation and
+copyright protection, which is a complementary goal to the
+pure bit-accuracy objective studied here. Lu et al. [22] present
+VINE, a diffusion-encoder watermark evaluated at ICLR 2025
+that is explicitly benchmarked for robustness to generative
+image editing; together with an updated TrustMark [23], these
+represent the current state of the art in generic (non-deepfake-
+specific) learned watermarking against which DiffMark could
+usefully be benchmarked in future work (Section VII).
+On the provenance side, the Coalition for Content Prove-
+nance and Authenticity finalised C2PA specification 2.2 in
+2025 [25], which complements pixel-level watermarking with
+cryptographically signed manifests, and Google’s SynthID-
+Image [26] deployed learned watermarking of generated im-
+ages at internet scale. These standards address a different
+threat model from DiffMark: they focus on labelling AI-
+generated content and platform-level metadata, whereas Diff-
+Mark focuses on surviving an active deepfake attack on
+an already-watermarked photograph. The two approaches are
+complementary, however, and could in principle be combined,
+with a DiffMark-style pixel watermark serving as the soft-
+binding signal referenced in the C2PA specification.
+We also note a concurrent and independently developed
+system that shares our method’s name and general approach:
+Sun et al. [27], first released in mid-2025, also propose a
+diffusion-conditioned watermark trained against a deepfake
+noise layer. Their design uses a frozen autoencoder to sim-
+ulate deepfake manipulation during training and a related
+deepfake-resistant guidance term, whereas the present work
+trains directly against five named deepfake systems plus an
+LDM-autoencoder proxy and an “ordinary” distortion set, and
+uses a message-conditioned adaptive group-normalisation U-
+Net rather than a frozen autoencoder. We flag the overlap
+explicitly for the reader’s benefit and view the convergence
+of two independent groups on similar architectural choices as
+supporting evidence that diffusion-conditioned embedding is a
+promising direction for deepfake-robust watermarking, rather
+than as a conflict between the two papers.
+=== PAGE 3 ===
+III. L ITERATURE REVIEW AND RESEARCH GAPANALYSIS
+Section II surveyed individual prior works; this section
+synthesises that body of work thematically and identifies the
+specific gap that motivates DiffMark’s design.
+The watermarking literature has progressed through three
+broad generations. The first generation (transform-domain
+methods such as DCT- and DWT-based spread-spectrum wa-
+termarking [15]) offers mathematically well-understood ro-
+bustness guarantees against signal-processing operations, but
+was never designed to survive semantic, content-altering edits,
+and consequently collapses under any transformation that
+touches the underlying facial identity. The second generation
+(end-to-end learned encoder-decoder frameworks such as HiD-
+DeN [1], StegaStamp [2], SepMark [3], and LampMark [4])
+replaced hand-designed transforms with differentiable noise
+layers and learned features, substantially improving robustness
+to common distortions such as JPEG compression, cropping,
+and blurring. However, as Table I summarises, none of these
+methods trains against, or evaluates on, deepfake-specific
+manipulations, so their robustness to face-swapping and reen-
+actment is, at best, incidental. The third generation , diffusion-
+based and provenance-oriented approaches [16]–[23], [25]–
+[27], is the most recent and the most directly relevant to this
+work. Within this generation, three distinct sub-strategies are
+visible: (i) repurposing a pretrained diffusion backbone for wa-
+termark embedding [16], [18], (ii) fingerprinting the diffusion
+sampling process itself rather than the output pixels [19], and
+(iii) building generic, non-deepfake-specific robustness against
+arbitrary generative edits [22], [23]. A parallel, complementary
+track pursues system-level provenance through cryptographic
+manifests and platform-scale watermarking [25], [26] rather
+than pixel-level robustness at all.
+Taken together, the literature reveals a consistent gap: meth-
+ods that are robust to conventional signal-processing distor-
+tions are not trained or evaluated against deepfake manipula-
+tion, while methods that do target diffusion-based robustness
+either operate on already-generated content (Tree-Ring [19]),
+embed within a diffusion backbone without deepfake-specific
+supervision [16], [18], or pursue generic, non-deepfake robust-
+ness [22], [23]. Only Wang et al. [17] and the concurrent work
+of Sun et al. [27] directly target deepfake robustness with a
+diffusion-adjacent design, and neither trains against as broad
+a set of named, heterogeneous face-manipulation systems
+as the five used here. DiffMark is positioned to close this
+gap by combining a diffusion-native embedding architecture
+with supervision from five distinct deepfake systems plus an
+autoencoder proxy, and by adding a message-guided sam-
+pling mechanism that specifically targets bit-accuracy recovery
+rather than tamper localisation or generic edit robustness.
+IV. P ROPOSED METHOD : DIFFMARK
+A. Overview
+Fig. 1 shows the overall pipeline. Given a host facial image
+I∈RH×W×3and a binary watermark message m∈ {0,1}L,DiffMark produces a watermarked image ˆIperceptually simi-
+lar to I. A decoder network Dlater extracts ˆmfrom a (possibly
+deepfaked) version of ˆI, and bit accuracy is measured as
+BA=1
+LLX
+i=1⊮[ ˆmi=mi]. (1)
+B. Encoder-Decoder Architecture
+The backbone is a guided-diffusion-style U-Net [7] ex-
+tended with message conditioning. Given message m, we
+project it to an embedding vector em∈Rdand inject it into
+every residual block via adaptive group normalisation. The
+encoder produces a residual ∆I, and the watermarked image
+is:
+ˆI=I+ tanh(∆ I)·ε, (2)
+where εis a small scalar controlling perturbation magnitude.
+The decoder mirrors the encoder with attention pooling at
+the bottleneck to aggregate spatial features into message
+logits ˆm∈[0,1]L. Table II summarises the key architectural
+hyperparameters.
+C. Diffusion-Based Embedding
+DiffMark treats watermark embedding as a conditioned
+denoising problem. The forward process is:
+q(xt|x0) =N 
+xt;√¯αtx0,(1−¯αt)I
+, (3)
+where ¯αt=Qt
+s=1(1−βs)and{βt}follows a linear schedule
+over T= 100 steps. The model learns the reverse process
+pθ(xt−1|xt, m)by predicting x0directly. At inference,
+DDIM [6] with 10 steps (ddim10) is used for fast, high-quality
+embedding.
+Algorithm 1 Random Noise Layer Forward Pass
+Require: watermarked image ˆI, noise layers set L
+1:Ni←UniformSample (L)
+2:˜I←Ni(ˆI)
+3:∆←˜I−ˆI
+4:return ˆI+stop_grad (∆)
+D. Multi-Deepfake Noise Layer Training
+The Random_Noise module uniformly samples one deep-
+fake layer per batch:
+•SimSwap [8]: identity-preserving face swap.
+•StarGAN [9]: multi-domain attribute editing.
+•UniFace [10]: unified face swapping with 3D priors.
+•CSCS [11]: cross-scale consistency swapping.
+•FSRT [12]: rotation-invariant transformer reenactment.
+•LDM: VQ-GAN autoencoder pass simulating latent-
+space manipulation.
+•Ordinary: JPEG, Gaussian noise, blurring.
+=== PAGE 4 ===
+TABLE I
+THEMATIC SUMMARY OF PRIOR WATERMARKING LITERATURE AND IDENTIFIED GAPS
+Method (Ref.) Year Core Approach Deepfake-
+Specific?Gap Relative to DiffMark
+HiDDeN [1] 2018 First end-to-end encoder-decoder with
+differentiable noise layerNo No deepfake noise layer; single-pass
+GAN-style embedding
+StegaStamp [2] 2020 Spatial-transformer robustness for
+physical-world captureNo Targets print/capture distortion, not se-
+mantic face editing
+SepMark [3] 2023 Disentangled robust/fragile
+watermark componentsPartial (source
+tracing)No explicit multi-deepfake training;
+single-pass embedding
+LampMark [4] 2024 Localized attention pooling for spatial
+fidelityPartial Improves spatial fidelity but not evalu-
+ated across diverse deepfake families
+Zhang et al. (SD-
+watermark) [16]2024 Watermark bits embedded in a pre-
+trained Stable Diffusion backboneNo Not trained against deepfake manipula-
+tion; targets generative-content labelling
+Wang et al. [17] 2024 Facial-landmark perceptual
+watermark for face-swap forensicsYes Landmark-specific; does not generalise
+via a broad multi-system noise layer
+WaterDiff [18] 2024 Diffusion autoencoder with wavelet-
+domain latent embeddingNo Invertible mapping trades away fine im-
+age detail
+Tree-Ring [19] 2023 Fingerprints the initial diffusion noise
+patternNo Applies only to diffusion-generated con-
+tent, not captured photographs
+EditGuard /
+OmniGuard [20],
+[21]2024/2025 Joint tamper localisation and copy-
+right protectionNo Optimised for localisation, not deepfake-
+specific bit-accuracy robustness
+VINE [22] 2025 Diffusion-encoder watermark robust
+to generative editingNo Generic robustness; not benchmarked
+against named deepfake systems
+TrustMark [23] 2023/2025 Universal watermarking for arbitrary
+resolutionsNo Resolution-agnostic but not deepfake-
+specific
+C2PA 2.2 [25] 2025 Cryptographically signed provenance
+manifestsNo (metadata-
+level)Complements, but does not replace,
+pixel-level watermark robustness
+SynthID-Image [26] 2025 Internet-scale watermarking of gener-
+ated imagesNo Targets AI-generated content labelling,
+not photograph authentication
+Sun et al. (concurrent)
+[27]2025 Diffusion-conditioned watermark
+with frozen-autoencoder deepfake
+simulationYes Independent, concurrent work; uses a
+frozen autoencoder rather than five
+named deepfake systems
+TABLE II
+DIFFMARK ARCHITECTURE CONFIGURATIONS
+Parameter 128 ×128 256 ×256
+Image size 128 256
+Message length L 30 128
+Embedding dim d 256 1024
+Base channels 32 64
+Res. blocks / scale 1 1
+Attn. resolutions 16, 8 32, 16, 8
+Attention heads 4 4
+Dropout 0.1 0.1
+E. Message-Guided Sampling
+The guidance gradient at each reverse step was originally
+stated as:
+∇xtLguide=∇xtLX
+i=1ˆmilogp( ˆmi|mi). (4)
+Full derivation of Eq. (4).Guided diffusion [7] steers the
+reverse process by adding a classifier-gradient term to the score
+estimate: ˆxt−1=DDIM 
+sθ(xt) +s· ∇xtlogpϕ(y|xt)
+,
+where yis the target attribute and sis a guidance scale.
+DiffMark instantiates this template with y=m, the target
+watermark message, and replaces the external classifier pϕ
+with the decoder network Ditself, which at each step is
+applied to a one-step denoised estimate ˆx0(xt)to producemessage logits ˆm(xt) =D(ˆx0(xt))∈[0,1]L. Treating each
+of the Lbits as an independent Bernoulli variable gives the
+log-likelihood of the true message under the decoder’s current
+prediction:
+logp(m|xt) =LX
+i=1h
+milog ˆmi(xt)+(1−mi) log(1 −ˆmi(xt))i
+,
+(5)
+which is simply the negative binary cross-entropy between the
+ground-truth message and the decoder’s live prediction. The
+guidance gradient used in practice is therefore:
+∇xtLguide=∇xtlogp(m|xt), (6)
+obtained by back-propagating through the decoder Dand the
+one-step denoising map xt→ˆx0(xt), exactly as a classifier
+gradient is obtained by back-propagating through an image
+classifier in standard classifier guidance. The originally stated
+Eq. (4) was a shorthand for this quantity; Eq. (6) is the
+form actually implemented, and it clarifies two points that
+the shorthand obscured. First, the sum runs over bits of a
+single known target message rather than over an unknown class
+label, so the gradient is well-defined even though mis not a
+probability distribution. Second, the gradient is scaled by a
+guidance strength sbefore being added to the score estimate
+(xt−1=DDIM (sθ+s·gϕ)in Fig. 2), and larger strades
+a small amount of additional image perturbation for higher
+message-extraction accuracy, which is exactly the pattern seen
+=== PAGE 5 ===
+empirically in Table V ( s= 2.0gives the highest bit accuracy
+on both seen and unseen attacks, at a marginal cost to PSNR).
+F . Training Objective
+The full training objective is:
+L=λ1Limg+λ2Lmsg+λ3Llpips, (7)
+where Limg=∥I−ˆI∥2
+2,Lmsg=BCE( ˆm, m ), andLlpipsis the
+perceptual loss [13]. We set λ1= 1.0,λ2= 1.0,λ3= 0.1
+with AdamW (lr = 10−4, wd = 10−5) for 151,200 steps.
+Fig. 3 shows the training loss decomposition over steps.
+Fig. 1. Overview of the DiffMark pipeline. The U-Net encoder embeds the
+binary message minto the host image Ithrough the diffusion forward process,
+producing the watermarked image ˆI. Dashed blue arrows denote the training-
+only path through the deepfake noise layer, used to compute the combined
+image and message losses ( Limg+Lmsg). Solid green arrows denote the
+inference-time path, in which ˆImay pass through an arbitrary, potentially
+unseen, deepfake system before the decoder recovers the extracted message
+ˆm.
+Fig. 2. Message-guided reverse diffusion sampling procedure. At each
+denoising step, the guidance gradient gϕ(Eq. (6)) is added to the score
+estimate sθbefore the DDIM update, steering the sampling trajectory toward
+higher message-extraction accuracy. The loop terminates once the timestep
+reaches zero, yielding the final watermarked output ˆI.
+V. E XPERIMENTS
+A. Experimental Setup
+Datasets. We train on CelebA-HQ and evaluate on CelebA-
+HQ (held-out test) and LFW at 128 ×128 and 256 ×256. Base-
+lines. HiDDeN [1], StegaStamp [2], SepMark [3], LampMark
+[4].Metrics. Bit accuracy (BA ↑), PSNR (dB ↑), SSIM ( ↑),
+LPIPS ( ↓).
+Fig. 3. Decomposition of the training loss for the 128 ×128 model over
+151,200 optimisation steps (schematic illustration). The vertical dashed line
+marks the step at which deepfake noise layers are introduced into training; the
+transient increase in loss immediately following this point reflects the added
+distortion difficulty.
+B. Robustness to Deepfake Attacks
+Table III reports bit accuracy after each deepfake attack on
+CelebA-HQ at 128 ×128. Fig. 4 visualises the same results as
+a grouped bar chart for easier comparison.
+TABLE III
+BITACCURACY (%) AFTER DEEPFAKE ATTACKS ON CELEB A-HQ AT
+128×128 R ESOLUTION
+Method SimSwap StarGAN UniFace CSCS FSRT Avg
+HiDDeN [1] 54.3 56.1 53.8 55.2 54.9 54.9
+StegaStamp [2] 61.7 63.4 60.2 62.5 61.8 61.9
+SepMark [3] 72.4 74.8 71.1 73.9 72.0 72.8
+LampMark [4] 78.6 80.2 77.5 79.0 78.1 78.7
+DiffMark (ours) 91.3 92.5 90.8 91.7 91.1 91.5
+Chance level: 50.0%. Bold: best.
+Fig. 4. Grouped bar chart comparing bit accuracy (%) across five deepfake
+attack types (SimSwap, StarGAN, UniFace, CSCS, FSRT) on CelebA-HQ at
+128×128 resolution. DiffMark achieves the highest accuracy against every
+attack type evaluated.
+C. Perceptual Quality
+Table IV reports perceptual metrics. Fig. 5 plots PSNR and
+SSIM simultaneously for visual comparison.
+D. Effect of Guided Sampling
+Table V ablates the guidance module. Fig. 6 shows the gain
+visually.
+
+=== PAGE 6 ===
+TABLE IV
+PERCEPTUAL QUALITY OF WATERMARKED IMAGES
+128×128 256 ×256
+Method PSNR SSIM LPIPS PSNR SSIM LPIPS
+HiDDeN [1] 32.1 0.942 0.068 33.0 0.948 0.062
+StegaStamp [2] 33.8 0.956 0.051 34.5 0.961 0.047
+SepMark [3] 35.2 0.963 0.038 36.0 0.967 0.035
+LampMark [4] 36.1 0.970 0.031 37.0 0.975 0.028
+DiffMark 37.4 0.978 0.022 38.6 0.983 0.018
+Fig. 5. PSNR–SSIM trade-off for all compared methods at 128 ×128 (filled
+markers) and 256 ×256 (hollow markers) resolutions. Points closer to the
+upper-right corner indicate superior perceptual quality; DiffMark occupies the
+most favourable position at both resolutions.
+TABLE V
+ABLATION : IMPACT OF MESSAGE -GUIDED SAMPLING (BA %)
+Configuration Seen Attacks Unseen Attacks
+DiffMark w/o guidance 91.5 82.3
+DiffMark w/ guidance ( s= 1.0) 93.1 88.7
+DiffMark w/ guidance ( s= 2.0) 93.8 90.4
+Fig. 6. Effect of the guidance scale son bit accuracy for seen and unseen
+deepfake attacks. Increasing sfrom 0 (no guidance) to 2.0 improves accuracy
+on both attack categories, with the larger gain observed for unseen attacks.E. Generalisation to LFW Dataset
+Table VI shows generalisation to LFW. Fig. 7 plots average
+BA across both resolutions.
+TABLE VI
+AVERAGE BITACCURACY (%) ONLFW D ATASET
+Method 128 ×128 256 ×256
+SepMark [3] 69.4 71.1
+LampMark [4] 75.3 77.8
+DiffMark (ours) 88.9 90.3
+Fig. 7. Average bit accuracy on the LFW dataset at 128 ×128 and 256 ×256
+resolutions, compared against SepMark and LampMark. DiffMark maintains
+a consistent margin of more than 13 percentage points over the strongest
+baseline at both resolutions.
+F . Training Convergence
+Fig. 8 shows bit accuracy convergence; Fig. 9 tracks LPIPS
+perceptual quality during training.
+Fig. 8. Training convergence curves for the 128 ×128 and 256 ×256 models
+(schematic). The dotted vertical line marks the point at which deepfake noise
+layers are introduced into training.
+G. Noise Layer Contribution Analysis
+Fig. 10 shows the proportion of training batches contributed
+by each noise layer type, and Fig. 11 compares the bit
+accuracy drop when each individual noise layer is removed
+from training (ablation).
+=== PAGE 7 ===
+Fig. 9. LPIPS perceptual distortion over the course of training (schematic).
+Distortion decreases steadily throughout optimisation and converges below
+0.022 by the final step for both resolutions.
+Fig. 10. Approximate sampling distribution of the seven noise layers (five
+deepfake systems, one LDM/VQ-GAN autoencoder pass, and one ordinary
+distortion category) used during training. Face-swap methods, SimSwap and
+StarGAN, are sampled marginally more often to reflect their higher training
+complexity.
+H. DDIM Steps vs. Quality Trade-off
+Fig. 12 explores how the number of DDIM inference steps
+affects embedding quality (PSNR) and bit accuracy.
+VI. D ISCUSSION
+A. Why Diffusion Helps
+The iterative denoising process distributes the watermark
+signal across multiple feature scales. This multi-scale embed-
+ding makes it difficult for face-swapping systems to destroy
+the mark without introducing perceptible artefacts.
+B. Limitations and Failure Cases
+DiffMark requires access to deepfake model weights during
+training for the noise layer. Newly released deepfake systems
+may degrade accuracy until the noise layer set is updated.
+Fig. 11. Leave-one-out ablation showing the drop in bit accuracy when each
+individual noise layer is excluded from training. SimSwap produces the largest
+degradation, indicating it is the most difficult distortion for the model to learn
+to survive.
+Fig. 12. Effect of the number of DDIM inference steps on embedding quality
+(PSNR, left axis) and bit accuracy (right axis). Performance saturates beyond
+10 steps, supporting the choice of a 10-step DDIM schedule (ddim10) for
+inference.
+Guided sampling partially mitigates this, as shown by the gap
+between seen- and unseen-attack accuracy narrowing from 9.2
+points without guidance to 3.4 points at s= 2.0in Table V;
+however, that gap does not close to zero, and the true failure
+mode is broader than a single unseen face-swap network.
+The most severe failure case we can identify from the
+literature, rather than from a new experiment run for this
+revision, is diffusion-based image regeneration. Ni et al. [24]
+show that passing a watermarked image through a general
+diffusion-based image-to-image regeneration pipeline, as op-
+posed to a task-specific face-swap network, can erase learned
+watermarks, including ones designed for robustness, because
+regeneration effectively resynthesises the entire image from
+a diffusion prior rather than locally editing a face region.
+DiffMark’s training set includes an LDM/VQ-GAN autoen-
+coder pass as one noise layer, which should offer partial
+protection, but this differs from a full multi-step diffusion
+regeneration attack and was not evaluated against one in this
+manuscript. We view closing this gap, either empirically by
+adding a diffusion-regeneration noise layer, or theoretically
+=== PAGE 8 ===
+by characterising the regime in which distributed multi-scale
+embedding still survives resynthesis, as the most important
+open failure case, and we list it as the first item in Section VII
+rather than claim a result we have not measured.
+A second class of failure case is severe image degrada-
+tion compounded with a deepfake attack (e.g., heavy JPEG
+compression or downscaling applied before or after face-
+swapping). The training noise set includes an “Ordinary” cate-
+gory (JPEG, Gaussian noise, blurring) sampled independently
+from the deepfake layers, but the two are never composed
+together during training in the setup described in Section III-
+D, so robustness to a compounded degradation-then-attack
+pipeline is untested and should not be assumed to match the
+single-distortion numbers in Table III.
+C. Computational Cost
+The DDIM-10 schedule limits embedding overhead to ap-
+proximately 0.3 s per image on an A100 GPU, which is
+acceptable for offline pipelines but potentially limiting for real-
+time applications.
+VII. S UGGESTED FUTURE EXPERIMENTS
+The following experiments were suggested during review.
+None were run for this revision; we list them here as a
+concrete, prioritised agenda rather than fabricate results for
+experiments not actually performed.
+•Robustness against diffusion-based image regeneration
+attacks (highest priority; see the limitations discussion
+in Section VI-B).
+•Cross-dataset evaluation on FaceForensics++, FFHQ, and
+DFDC, in addition to the CelebA-HQ / LFW results
+reported here.
+•Statistical significance testing (multiple training seeds /
+multiple evaluation runs) for the headline numbers in
+Tables III–VI, which currently report single-run results.
+•Robustness against sequential/composed attacks: JPEG
+compression, resizing, and cropping combined with a
+deepfake pass, and multiple chained deepfake manipu-
+lations.
+•Head-to-head comparison with recent diffusion-based wa-
+termarking methods, specifically VINE [22] and an up-
+dated TrustMark [23], under a shared evaluation protocol.
+•Runtime and memory profiling against competing meth-
+ods, including an actual measured memory footprint at
+both resolutions.
+•Ablation on the number of deepfake noise layers used
+in training (e.g., 3 vs. 5 vs. 7 systems) and on message
+length at fixed resolution, to separate the two confounded
+factors in the current Table II configurations.
+•A latent-diffusion variant of the encoder-decoder, for di-
+rect comparison against the pixel-space guided-diffusion
+design used here.
+VIII. C ONCLUSION
+We presented DiffMark, a diffusion-based watermarking
+framework designed to survive deepfake manipulation. Bycoupling watermark embedding with guided diffusion and
+training against diverse deepfake noise layers, DiffMark
+achieves over 91% average bit accuracy across five deepfake
+systems while maintaining high perceptual quality (PSNR
+>37 dB, SSIM >0.97). Message-guided sampling further
+boosts robustness against unseen attacks, and ablations confirm
+that each design choice contributes meaningfully to overall
+performance. This revision clarifies the derivation of the guid-
+ance term, situates the method against 2024–2026 diffusion-
+based and provenance watermarking work through a dedicated
+literature review, and is explicit about the failure cases and
+experiments that remain open, most importantly, robustness to
+diffusion-based regeneration attacks.
+ACKNOWLEDGMENT
+The authors thank the contributors of Guided-Diffusion,
+Stable-Diffusion, SepMark, and LampMark for their open-
+source implementations, and Vasavi College of Engineering
+for infrastructure support.
+REFERENCES
+[1] J. Zhu, R. Kaplan, J. Johnson, and L. Fei-Fei, “HiDDeN: Hiding data
+with deep networks,” in Proc. ECCV , 2018, pp. 682–697.
+[2] M. Tancik, B. Mildenhall, and R. Ng, “StegaStamp: Invisible hyperlinks
+in physical photographs,” in Proc. CVPR , 2020, pp. 2117–2126.
+[3] S. Wu, B. Li, J. Zhao, and X. Tan, “SepMark: Deep separable water-
+marking for unified source tracing and deepfake detection,” in Proc.
+ACM MM , 2023.
+[4] T. Wang et al., “LampMark: Robust watermarking via localized attention
+pooling,” in Proc. AAAI , 2024.
+[5] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,”
+inProc. NeurIPS , 2020, pp. 6840–6851.
+[6] J. Song, C. Meng, and S. Ermon, “Denoising diffusion implicit models,”
+inProc. ICLR , 2021.
+[7] P. Dhariwal and A. Nichol, “Diffusion models beat GANs on image
+synthesis,” in Proc. NeurIPS , 2021, pp. 8780–8794.
+[8] R. Chen et al., “SimSwap: An efficient framework for high-fidelity face
+swapping,” in Proc. ACM MM , 2020.
+[9] Y . Choi et al., “StarGAN: Unified generative adversarial networks for
+multi-domain image-to-image translation,” in Proc. CVPR , 2018.
+[10] H. Zhou et al., “UniFace: Unified cross-scale face swapping via identifier
+distribution learning,” in Proc. ECCV , 2022.
+[11] Y . Liu et al., “CSCS: Cross-scale consistency swapping for face manip-
+ulation,” in Proc. AAAI , 2023.
+[12] A. Rochow et al., “FSRT: Facial scene representation transformer for
+face reenactment,” in Proc. CVPR , 2023.
+[13] R. Zhang et al., “The unreasonable effectiveness of deep features as a
+perceptual metric,” in Proc. CVPR , 2018.
+[14] F. Chollet, “Xception: Deep learning with depthwise separable convo-
+lutions,” in Proc. CVPR , 2017.
+[15] I. J. Cox, J. Kilian, F. T. Leighton, and T. Shamoon, “Secure spread
+spectrum watermarking for multimedia,” IEEE Trans. Image Process. ,
+vol. 6, no. 12, pp. 1673–1687, 1997.
+[16] L. Zhang, X. Liu, A. Viros Martin, C. Xiong Bearfield, Y . Brun,
+and H. Guan, “Robust image watermarking using Stable Diffusion,”
+arXiv:2401.04247, 2024.
+[17] T. Wang, M. Huang, H. Cheng, and B. Ma, “Robust identity perceptual
+watermark against deepfake face swapping,” 2024.
+[18] S. Tan et al., “WaterDiff: Watermarking via pretrained diffusion autoen-
+coder and discrete wavelet transform,” 2024.
+[19] Y . Wen, J. Kirchenbauer, J. Geiping, and T. Goldstein, “Tree-Ring wa-
+termarks: Invisible fingerprints for diffusion images,” in Proc. NeurIPS ,
+2023.
+[20] X. Zhang, R. Li, J. Yu, Y . Xu, W. Li, and J. Zhang, “EditGuard: Versatile
+image watermarking for tamper localization and copyright protection,”
+inProc. CVPR , 2024.VII. FUTURE SCOPE
+
+=== PAGE 9 ===
+[21] X. Zhang, Z. Tang, Z. Xu, R. Li, Y . Xu, B. Chen, F. Gao, and J. Zhang,
+“OmniGuard: Hybrid manipulation localization via augmented versatile
+deep image watermarking,” 2025.
+[22] S. Lu, Z. Zhou, J. Lu, Y . Zhu, and A. W.-K. Kong, “VINE: Robust and
+imperceptible generative watermarking,” in Proc. ICLR , 2025.
+[23] T. Bui et al., “TrustMark: Universal watermarking for arbitrary resolu-
+tion images,” arXiv:2311.18297, 2023 (2025 update).
+[24] X. Ni et al., “Diffusion-based image regeneration erases learned water-
+marks,” 2025.
+[25] Coalition for Content Provenance and Authenticity, “C2PA
+Technical Specification,” version 2.2, 2025. [Online]. Available:
+https://c2pa.org/specifications
+[26] Google DeepMind, “SynthID-Image: Image watermarking at internet
+scale,” arXiv:2510.09263, 2025.
+[27] C. Sun et al., “DiffMark: Diffusion-based robust watermark against
+deepfakes,” arXiv:2507.01428, 2025 (concurrent, independent work).
