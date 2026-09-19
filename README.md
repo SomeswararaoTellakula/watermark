@@ -37,6 +37,28 @@ npm run dev
 ```
 The frontend runs on port 3000.
 
+## Render Deployment
+
+Render deploys the backend and frontend as separate web services. The included
+`render.yaml` is a Blueprint configuration for both services. It pins the
+backend to Python 3.11.9 because the default Render Python runtime can move
+ahead of the versions supported by the backend dependencies.
+
+For a manually created backend service, use:
+
+- Root directory: `DiffMark-main/webapp`
+- Build command: `python -m pip install --upgrade pip && python -m pip install -r requirements.txt`
+- Start command: `PORT=$PORT python app.py`
+- Environment variable: `PYTHON_VERSION=3.11.9`
+
+For the frontend service, use `diffmark-frontend` as the root directory and
+`npm install && npm run build` as the build command. Set
+`NEXT_PUBLIC_API_URL` to the deployed backend URL followed by `/api`.
+
+After deploying, verify the backend at `/api/health` before testing login or
+watermark operations. If a build selects Python 3.14, set `PYTHON_VERSION` to
+`3.11.9` and redeploy.
+
 ### Research Extensions
 
 To test all 10 research extensions:
